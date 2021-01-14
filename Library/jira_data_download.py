@@ -5,7 +5,8 @@ import math
 
 
 class JiraDataDownload:
-    def __init__(self, login, api_key, project_list, jira_options, fields):
+    def __init__(self, login, api_key, project_list, jira_options, fields, check_logged_time: bool):
+        self.__check_logged_time = check_logged_time
         self.__fields = fields
         self.__project_list = project_list
         self.__connect = JIRA(options=jira_options, basic_auth=(login, api_key))
@@ -40,7 +41,18 @@ class JiraDataDownload:
 
             JiraDataDownload.__log_page_number(initial)
 
-            JiraDataDownload.__processing_request(self, self.__issues)
+            if self.__check_logged_time:
+                JiraDataDownload.__processing_request_time_spent(self, self.__issues)
+            else:
+                JiraDataDownload.__processing_request(self, self.__issues)
+
+    def __processing_request_time_spent(self, issues):
+        for issue in issues:
+            if JiraDataDownload.__field_checked(issue, 'customfield_10163'):
+                if JiraDataDownload.__issues_fields_value_checked_time_spent(issue):
+                    if JiraDataDownload.__story_point_value_checked(issue.fields.customfield_10163):
+                        iteration_result = JiraDataDownload.__iteration_result_time_spent(issue)
+                        self.__result.append(iteration_result)
 
     def __processing_request(self, issues):
         for issue in issues:
@@ -51,12 +63,20 @@ class JiraDataDownload:
                         self.__result.append(iteration_result)
 
     @staticmethod
-    def __iteration_result(issue):
+    def __iteration_result_time_spent(issue):
         iteration_result = [str(issue),
                             str(issue.fields.status),
                             parse(str(issue.fields.created)),
                             (int(issue.fields.aggregatetimespent)),
                             (math.ceil(int(issue.fields.aggregatetimespent) / 3600)),
+                            float(issue.fields.customfield_10163)]
+        return iteration_result
+
+    @staticmethod
+    def __iteration_result(issue):
+        iteration_result = [str(issue),
+                            str(issue.fields.status),
+                            parse(str(issue.fields.created)),
                             float(issue.fields.customfield_10163)]
         return iteration_result
 
@@ -75,11 +95,20 @@ class JiraDataDownload:
             return False
 
     @staticmethod
-    def __issues_fields_value_checked(issue):
+    def __issues_fields_value_checked_time_spent(issue):
         if issue.fields.created is not None and \
                 str(issue.fields.status) == 'Closed' and \
                 issue.fields.customfield_10163 is not None and \
                 issue.fields.aggregatetimespent is not None:
+            return True
+        else:
+            return False
+
+    @staticmethod
+    def __issues_fields_value_checked(issue):
+        if issue.fields.created is not None and \
+                str(issue.fields.status) == 'Closed' and \
+                issue.fields.customfield_10163 is not None:
             return True
         else:
             return False

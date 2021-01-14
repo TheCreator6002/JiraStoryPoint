@@ -15,7 +15,8 @@ for project in project_list:
                             api_key=autorization_data['api_key'],
                             jira_options=jira_options,
                             project_list=project,
-                            fields=fields)
+                            fields=fields,
+                            check_logged_time=True)
 
     result_list = data.get_data()
 
@@ -42,7 +43,6 @@ for project in project_list:
 
 
 pandas.set_option('display.max_columns', 48)
-print(final)
 
 KEY_FILE_LOCATION = 'bigquery_sandbox.json'
 
